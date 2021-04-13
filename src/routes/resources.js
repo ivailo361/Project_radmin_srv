@@ -5,9 +5,20 @@ const db = new MongoDB();
 const UserExceptionError = require('../../models/userException')
 
 async function getComponents(req, res, next) {
+    const {collection } = req.params
+    const { query } = req
     try {
-        let result = await db.getData('components');
-        res.status(200).json(result)
+        let { paginatedResults, totalCount } = await db.getData(collection, query);
+        let data = paginatedResults.map(x => {
+            if (!x.id) {
+                return { id: x._id,  ...x}
+            }
+            return x
+        })
+        let total = totalCount && totalCount[0].count 
+        // let { _id: id} = result
+        // console.log(id)
+        res.status(200).json({data: data, total: total})
     }
     catch(e) {
         let error = new UserExceptionError(400, 'Unsuccessful loading of component\'s list please try again later')

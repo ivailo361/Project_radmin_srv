@@ -17,8 +17,8 @@ const app = express()
 const cors = require('cors');
 
 const connectDB = require('./config/connectDB')
-const stockRouter = require('./src/stock/routerStock');
-const editRouter = require('./src/edit/routerEdit');
+// const stockRouter = require('./src/stock/routerStock');
+const routerMain = require('./src/routes/routerMain');
 
 connectDB().then(() => {
     console.log('connected')
@@ -35,8 +35,8 @@ connectDB().then(() => {
 
     // app.use(cookieParser())
 
-    app.use('/api/stock', stockRouter);
-    app.use('/api/edit', editRouter);
+    // app.use('/api/stock', stockRouter);
+    app.use('/api', routerMain);
     app.use('*', (req, res, next) => res.send('<h1> Something went wrong. Try again. :thumbsup: </h1>'))
 
     app.use(function (err, req, res, next) {

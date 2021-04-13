@@ -1,10 +1,10 @@
-const edit = require('./edit');
+const edit = require('./resources');
 const router = require('express').Router();
 const readFile = require('../../models/multer')
 const { authUser } = require('../../models/auth')
 // const validate= require('../../models/validator');
 
-router.get('/', authUser, edit.getComponents)
+router.get('/:collection', /*authUser,*/ edit.getComponents)
 
 router.post('/', readFile, edit.uploadComponents)
 

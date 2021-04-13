@@ -4,7 +4,7 @@ const { authUser } = require('../../models/auth')
 // const validate= require('../../models/validator');
 
 
-router.get('/', authUser, stock.getInitialData);
+router.get('/', /*authUser,*/ stock.getInitialData);
 
 router.delete('/delete', stock.deleteComponents)
 

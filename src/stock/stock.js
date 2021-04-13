@@ -10,7 +10,7 @@ const db = new MongoDB();
 async function getInitialData(req, res, next) {
     try {
         console.log('I am here')
-        const getData = await Promise.all([db.getData('servers'), db.getData('types')])
+        const getData = await Promise.all([db.getData('models'), db.getData('types')])
         const result = [...getData[0], ...getData[1]]
         if (result.length === 0) {
             throw new UserExceptionError(404, 'Sorry, we cannot find that!')

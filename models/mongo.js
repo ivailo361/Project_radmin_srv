@@ -1,13 +1,14 @@
 
 const ObjectId = require('mongodb').ObjectId;
 const connectDB = require('../config/connectDB')
+const cookingParams = require('./cookingParams')
 
 const paramsCooking = {
     email: (name) => {
         return { email: name }
     },
     type: (name) => {
-        return { type: name}
+        return { type: name }
     },
     authorId: (authorId) => {
         return { _id: new ObjectId(authorId) }
@@ -23,23 +24,68 @@ class MongoDB {
     constructor() {
     }
 
-    async getData(collection, param = {}) {
+    async getData(collection, query) {
+        const aggregatedRecord = cookingParams(query)
         const { connect, db } = await connectDB()
+        // const [ start, end ] = JSON.parse(range) 
+        // const [ field, value ] = JSON.parse(sort)
+        // const match = JSON.parse(filter)
+        // let selector = Object.entries(param)
+        //     .reduce((acc, b) => {
+        //         let key = b[0];
+        //         let value = b[1]
+        //         if (!acc[key]) {
+        //             let obj = Object.assign(acc, paramsCooking[key](value))
+        //             return obj
+        //         }
+        //     }, {})
+        const length = await db.collection(collection).countDocuments()
+        // const cursor = db.collection(collection).find(selector).skip(start).limit(count - start).sort({ _id: 1 });
+        const cursor = db.collection(collection).aggregate(
+            aggregatedRecord
+            // [
+            //     // {
+            //     //     $match: { price: { $gte: 200.01}, qty: { $eq: 0 },  }
+            //     // },
+            //     {
+            //         $match: filter 
+            //         // $match: {sapNum: { $in: ['4119456', '4014111', '4014112']} }
+            //     },
+            //     {
+            //         $sort: null
+            //     },
+            //     {
+            //         $facet: {
+            //             // findResult: [{ $match: { qty: { $eq: 0 } }}],
+            //             paginatedResults: [{ $skip: 0 }, { $limit: (8) + 1 }],
+            //             totalCount: [{ $count: 'count' }]
+            //         }
+            //     }
+            // ]
 
-        let selector = Object.entries(param)
-            .reduce((acc, b) => {
-                let key = b[0];
-                let value = b[1]
-                if (!acc[key]) {
-                    let obj = Object.assign(acc, paramsCooking[key](value))
-                    return obj
-                }
-            }, {})
-        const cursor = db.collection(collection).find(selector).sort({ _id: 1 });
-        const results = await cursor.toArray();
+            // [
+            //     {
+            //         $match: {
+            //             qty: { $eq: 0 }
+            //         }
+            //     },
+            //     {
+            //         $skip: start
+            //     },
+            //     {
+            //         $limit: (end - start) + 1
+            //     },
+            //     {
+            //         $count: "totalCount"
+            //     }
+            // ]
+
+        )
+        const result = await cursor.toArray();
+
         connect.close()
-        if (results.length >= 1) {
-            return results;
+        if (result.length >= 1) {
+            return result[0]
         } else {
             throw new Error('You do not have rights to do that')
         }
@@ -99,7 +145,7 @@ class MongoDB {
         let result = await db.collection('types').deleteOne({ type: type })
         connect.close()
         if (result.deletedCount >= 1) {
-            return {deletedCount: 1, deletedModel: type}
+            return { deletedCount: 1, deletedModel: type }
         } else {
             throw new Error('Unsuccessful DELETE operation')
         }
@@ -125,7 +171,7 @@ class MongoDB {
         let result = await db.collection('servers').updateOne({ sap: id }, { $pull: { models: model } })
         connect.close()
         if (result.modifiedCount >= 1) {
-            return {deletedCount: 1, deletedModel: model}
+            return { deletedCount: 1, deletedModel: model }
         } else {
             throw new Error('Unsuccessful DELETE operation')
         }
@@ -150,7 +196,7 @@ class MongoDB {
         const listForDel = compList.map(x => db.collection(collection).deleteOne({ sapNum: x }))
         let result = await Promise.all(listForDel)
         let count = result.reduce((acc, v) => {
-            if(v.deletedCount === 1) {
+            if (v.deletedCount === 1) {
                 acc++
                 return acc
             }
@@ -248,162 +294,162 @@ class MongoDB {
 
 
 
-//**************************************************************************** */
+    //**************************************************************************** */
 
 
 
 
-//     async deleteCourse(courseId, courseTitle) {
-//         const db = await connectDB();
-//         const o_id = new ObjectId(courseId);
-//         const [delCourse, updateUser] = await Promise.all([
-//             db.collection('courses').deleteOne({ "_id": o_id }),
-//             db.collection('users').updateMany({ enrolledCourses: courseTitle }, { $pull: { enrolledCourses: courseTitle } })
-//         ]);
+    //     async deleteCourse(courseId, courseTitle) {
+    //         const db = await connectDB();
+    //         const o_id = new ObjectId(courseId);
+    //         const [delCourse, updateUser] = await Promise.all([
+    //             db.collection('courses').deleteOne({ "_id": o_id }),
+    //             db.collection('users').updateMany({ enrolledCourses: courseTitle }, { $pull: { enrolledCourses: courseTitle } })
+    //         ]);
 
-//         if (delCourse.deletedCount >= 1) {
-//             return delCourse
-//         } else {
-//             return Promise.reject({ message: `There is no such course found in DB` })
-//         }
-//     }
-
-
-//     async insertUser(collectionName, record) {
-//         const db = await connectDB();
-//         const result = await db.collection(collectionName).insertOne(record);
-//         // console.log(`New listing created with the following id: ${result.insertedId}`);
-//         if (result.insertedCount >= 1) {
-//             return result
-//         } else {
-//             return Promise.reject('The user was not created')
-//         }
-//     }
-
-//     async updateUser(courseId, newData) {
-//         const db = await connectDB();
-
-//         // let result = await db.collection('also').insertOne({ name: "Pepo", url: "http://ivo0.com" })
-//         // console.log(result.toJSON())
-
-//         const o_id = new ObjectId(courseId);
-//         const { email, password } = newData;
-//         const updatedData = { $set: { email, password } }
-
-//         let result = await db.collection('users').updateOne({ _id: o_id }, updatedData)
-//         if (result.modifiedCount >= 1) {
-//             return result
-//         }
-//         else {
-//             return Promise.reject('the user was not updated probably because of the wrong input data')
-//         }
-//     }
-
-//     async insertPosts(collectionName, data) {
-//         const db = await connectDB();
-//         const result = await db.collection(collectionName).insertOne(data);
-//         if (result.insertedCount >= 1) {
-//             return result
-//         } else {
-//             return Promise.reject('The new origami was not created')
-//         }
-//     }
+    //         if (delCourse.deletedCount >= 1) {
+    //             return delCourse
+    //         } else {
+    //             return Promise.reject({ message: `There is no such course found in DB` })
+    //         }
+    //     }
 
 
-//     async insertCourses(creator, record) {
-//         const db = await connectDB();
-//         const client = await connectSession()
-//         const courseCollection = db.collection('courses');
-//         const userCollection = db.collection('users');
+    //     async insertUser(collectionName, record) {
+    //         const db = await connectDB();
+    //         const result = await db.collection(collectionName).insertOne(record);
+    //         // console.log(`New listing created with the following id: ${result.insertedId}`);
+    //         if (result.insertedCount >= 1) {
+    //             return result
+    //         } else {
+    //             return Promise.reject('The user was not created')
+    //         }
+    //     }
 
-//         const session = client.startSession();
+    //     async updateUser(courseId, newData) {
+    //         const db = await connectDB();
 
-//         const transactionOptions = {
-//             readPreference: 'primary',
-//             readConcern: { level: 'local' },
-//             writeConcern: { w: 'majority' }
-//         };
-//         try {
-//             const transactionResults = await session.withTransaction(async () => {
-//                 const setCourse = await courseCollection.insertOne(record, { session })
+    //         // let result = await db.collection('also').insertOne({ name: "Pepo", url: "http://ivo0.com" })
+    //         // console.log(result.toJSON())
 
-//                 // const isUserEnrolledForCourse = await userCollection.findOne({ enrolledCourses: record.title }, { session })
-//                 const [isCourseExists, isUserEnrolled] = await Promise.all([
-//                     courseCollection.findOne({ title: record.title }),
-//                     userCollection.findOne({ username: creator, enrolledCourses: record.title })
-//                 ])
-//                 if (isCourseExists || isUserEnrolled) {
-//                     await session.abortTransaction();
-//                     console.error('The user has already enrolled for the course')
-//                     return
-//                 }
+    //         const o_id = new ObjectId(courseId);
+    //         const { email, password } = newData;
+    //         const updatedData = { $set: { email, password } }
 
-//                 const addCourseInUser = await userCollection.updateOne({ username: creator }, { $push: { enrolledCourses: record.title } }, { session })
-//                 console.log(`the user has enrolled for course: ${record.title}`)
-//             }, transactionOptions)
+    //         let result = await db.collection('users').updateOne({ _id: o_id }, updatedData)
+    //         if (result.modifiedCount >= 1) {
+    //             return result
+    //         }
+    //         else {
+    //             return Promise.reject('the user was not updated probably because of the wrong input data')
+    //         }
+    //     }
 
-//             if (transactionResults) {
-//                 console.log("The course was successfully created.");
-//                 return Promise.resolve("The course was successfully created.")
-//             } else {
-//                 console.log("The course has already exists or the user has already enrolled");
-//                 return Promise.reject({ message: "The course has already exists or the user has already enrolled" })
-//             }
-//         } catch (e) {
-//             console.log("The transaction was aborted due to an unexpected error: " + e);
-//         } finally {
-//             session.endSession(() => { console.log('session was terminated') })
-//         }
-//     }
+    //     async insertPosts(collectionName, data) {
+    //         const db = await connectDB();
+    //         const result = await db.collection(collectionName).insertOne(data);
+    //         if (result.insertedCount >= 1) {
+    //             return result
+    //         } else {
+    //             return Promise.reject('The new origami was not created')
+    //         }
+    //     }
 
-//     async enrollUser(record) {
-//         const db = await connectDB();
-//         const client = await connectSession()
-//         const courseCollection = db.collection('courses');
-//         const userCollection = db.collection('users');
 
-//         const session = client.startSession();
+    //     async insertCourses(creator, record) {
+    //         const db = await connectDB();
+    //         const client = await connectSession()
+    //         const courseCollection = db.collection('courses');
+    //         const userCollection = db.collection('users');
 
-//         const transactionOptions = {
-//             readPreference: 'primary',
-//             readConcern: { level: 'local' },
-//             writeConcern: { w: 'majority' }
-//         };
-//         try {
-//             const transactionResults = await session.withTransaction(async () => {
+    //         const session = client.startSession();
 
-//                 // const isUserEnrolledForCourse = await userCollection.findOne({ enrolledCourses: record.title }, { session })
-//                 const [isCourseExists, isUserEnrolled] = await Promise.all([
-//                     courseCollection.findOne({ title: record.title, usersEnrolled: record.username }),
-//                     userCollection.findOne({ username: record.username, enrolledCourses: record.title })
-//                 ])
-//                 if (isCourseExists || isUserEnrolled) {
-//                     await session.abortTransaction();
-//                     console.error('The user has already enrolled for the course')
-//                     return
-//                 }
+    //         const transactionOptions = {
+    //             readPreference: 'primary',
+    //             readConcern: { level: 'local' },
+    //             writeConcern: { w: 'majority' }
+    //         };
+    //         try {
+    //             const transactionResults = await session.withTransaction(async () => {
+    //                 const setCourse = await courseCollection.insertOne(record, { session })
 
-//                 await courseCollection.updateOne({ title: record.title }, { $push: { usersEnrolled: record.username } }, { session })
-//                 await userCollection.updateOne({ username: record.username }, { $push: { enrolledCourses: record.title } }, { session })
-//                 console.log(`the user has enrolled for course: ${record.title}`)
-//             }, transactionOptions);
+    //                 // const isUserEnrolledForCourse = await userCollection.findOne({ enrolledCourses: record.title }, { session })
+    //                 const [isCourseExists, isUserEnrolled] = await Promise.all([
+    //                     courseCollection.findOne({ title: record.title }),
+    //                     userCollection.findOne({ username: creator, enrolledCourses: record.title })
+    //                 ])
+    //                 if (isCourseExists || isUserEnrolled) {
+    //                     await session.abortTransaction();
+    //                     console.error('The user has already enrolled for the course')
+    //                     return
+    //                 }
 
-//             if (transactionResults) {
-//                 console.log("The user was successfully enrolled.");
-//                 return Promise.resolve("The user was successfully enrolled.")
-//             } else {
-//                 console.log("The user has already enrolled for the chosen course");
-//                 return Promise.reject({ message: "The user has already enrolled for the chosen course" })
-//             }
+    //                 const addCourseInUser = await userCollection.updateOne({ username: creator }, { $push: { enrolledCourses: record.title } }, { session })
+    //                 console.log(`the user has enrolled for course: ${record.title}`)
+    //             }, transactionOptions)
 
-//         }
-//         catch (e) {
-//             console.log("The transaction was aborted due to an unexpected error: " + e);
-//         } finally {
-//             session.endSession(() => { console.log('session was terminated') })
-//         }
+    //             if (transactionResults) {
+    //                 console.log("The course was successfully created.");
+    //                 return Promise.resolve("The course was successfully created.")
+    //             } else {
+    //                 console.log("The course has already exists or the user has already enrolled");
+    //                 return Promise.reject({ message: "The course has already exists or the user has already enrolled" })
+    //             }
+    //         } catch (e) {
+    //             console.log("The transaction was aborted due to an unexpected error: " + e);
+    //         } finally {
+    //             session.endSession(() => { console.log('session was terminated') })
+    //         }
+    //     }
 
-//     }
+    //     async enrollUser(record) {
+    //         const db = await connectDB();
+    //         const client = await connectSession()
+    //         const courseCollection = db.collection('courses');
+    //         const userCollection = db.collection('users');
+
+    //         const session = client.startSession();
+
+    //         const transactionOptions = {
+    //             readPreference: 'primary',
+    //             readConcern: { level: 'local' },
+    //             writeConcern: { w: 'majority' }
+    //         };
+    //         try {
+    //             const transactionResults = await session.withTransaction(async () => {
+
+    //                 // const isUserEnrolledForCourse = await userCollection.findOne({ enrolledCourses: record.title }, { session })
+    //                 const [isCourseExists, isUserEnrolled] = await Promise.all([
+    //                     courseCollection.findOne({ title: record.title, usersEnrolled: record.username }),
+    //                     userCollection.findOne({ username: record.username, enrolledCourses: record.title })
+    //                 ])
+    //                 if (isCourseExists || isUserEnrolled) {
+    //                     await session.abortTransaction();
+    //                     console.error('The user has already enrolled for the course')
+    //                     return
+    //                 }
+
+    //                 await courseCollection.updateOne({ title: record.title }, { $push: { usersEnrolled: record.username } }, { session })
+    //                 await userCollection.updateOne({ username: record.username }, { $push: { enrolledCourses: record.title } }, { session })
+    //                 console.log(`the user has enrolled for course: ${record.title}`)
+    //             }, transactionOptions);
+
+    //             if (transactionResults) {
+    //                 console.log("The user was successfully enrolled.");
+    //                 return Promise.resolve("The user was successfully enrolled.")
+    //             } else {
+    //                 console.log("The user has already enrolled for the chosen course");
+    //                 return Promise.reject({ message: "The user has already enrolled for the chosen course" })
+    //             }
+
+    //         }
+    //         catch (e) {
+    //             console.log("The transaction was aborted due to an unexpected error: " + e);
+    //         } finally {
+    //             session.endSession(() => { console.log('session was terminated') })
+    //         }
+
+    //     }
 
     // async updateCourseData(courseId, newData) {
     //     const db = await connectDB();
